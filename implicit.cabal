@@ -1,283 +1,268 @@
-Cabal-version:       2.2
-Name:                implicit
-Version:             0.4.1.0
-Tested-with:         GHC >= 8.8
-Build-type:          Simple
-Synopsis:            A math-inspired programmatic 2D & 3D CAD system.
-Description:         An OpenSCAD execution engine for generating models in STL and many other formats.
-License:             AGPL-3.0-or-later
-License-file:        LICENSE
-Author:              Julia Longtin <julia.longtin@gmail.com>
-Maintainer:          Julia Longtin <julia.longtin@gmail.com>
-Homepage:            http://implicitcad.org/
-Category:            Graphics
+cabal-version:      2.2
+name:               implicit
+version:            0.4.1.0
+tested-with:        GHC >=8.8
+build-type:         Simple
+synopsis:           A math-inspired programmatic 2D & 3D CAD system.
+description:
+  An OpenSCAD execution engine for generating models in STL and many other formats.
 
-Extra-source-files:
-  README.md
+license:            AGPL-3.0-or-later
+license-file:       LICENSE
+author:             Julia Longtin <julia.longtin@gmail.com>
+maintainer:         Julia Longtin <julia.longtin@gmail.com>
+homepage:           http://implicitcad.org/
+category:           Graphics
+extra-source-files:
   LICENSE
+  README.md
   tests/golden/*.ascii.stl
-  tests/golden/*.three.js
   tests/golden/*.obj
   tests/golden/*.png
   tests/golden/*.scad
+  tests/golden/*.three.js
   tests/golden/boxCylinder.stl
 
-Extra-doc-files:
+extra-doc-files:
   CHANGELOG.md
   CONTRIBUTORS
   Release.md
   Tools.md
 
 flag extopenscad
-  default:
-    True
-  description:
-    Builds extopenscad program
+  default:     True
+  description: Builds extopenscad program
 
 flag docgen
-  default:
-    True
-  description:
-    Builds docgen program
+  default:     True
+  description: Builds docgen program
 
 flag implicitsnap
-  default:
-    False
-  description:
-    Builds implicitsnap program
+  default:     False
+  description: Builds implicitsnap program
 
-Common binstuff
-    Default-Language: Haskell2010
-    Default-extensions: 
-      NoImplicitPrelude
-      Strict
-    Ghc-options:
-                -threaded
-                -rtsopts "-with-rtsopts -N -qg -t"
-                -optc-O3
-                -- see GHC manual 8.2.1 section 6.5.1.
-                -feager-blackholing
-                -Wall
-                -Wextra
-                -Wcompat
-                -Wmonomorphism-restriction
-                -Wmissing-signatures
-                -Wmissing-export-lists
-                -Wmissing-import-lists
-                -Wmissing-home-modules
-                -Widentities
-                -Wimplicit-prelude
-                -Wredundant-constraints
-                -Wall-missed-specialisations
+common binstuff
+  default-language:   Haskell2010
+  default-extensions:
+    NoImplicitPrelude
+    StrictData
 
-Common libstuff
-    Default-Language: Haskell2010
-    Default-extensions: 
-      NoImplicitPrelude
-      Strict
-    Ghc-options:
-                -optc-O3
-                -- see GHC manual 8.2.1 section 6.5.1.
-                -feager-blackholing
-                -Wall
-                -Wextra
-                -Wcompat
-                -Wmonomorphism-restriction
-                -Wmissing-signatures
-                -Wmissing-export-lists
-                -Wmissing-import-lists
-                -Wmissing-home-modules
-                -Widentities
-                -Wimplicit-prelude
-                -Wredundant-constraints
-                -Wall-missed-specialisations
+  ghc-options:
+    -threaded -rtsopts "-with-rtsopts -N -qg -t" -optc-O3
+    -feager-blackholing -Wall -Wextra -Wcompat
+    -Wmonomorphism-restriction -Wmissing-signatures
+    -Wmissing-export-lists -Wmissing-import-lists
+    -Wmissing-home-modules -Widentities -Wimplicit-prelude
+    -Wredundant-constraints -Wall-missed-specialisations
 
-Library
-    Import: libstuff
-    Build-depends:
-                  base >= 3 && < 5,
-                  filepath,
-                  directory,
-                  parsec,
-                  parallel,
-                  containers,
-                  data-default-class,
-                  deepseq,
-                  text,
-                  bytestring,
-                  blaze-builder,
-                  blaze-markup,
-                  blaze-svg,
-                  JuicyPixels,
-                  mtl,
-                  linear,
-                  show-combinators,
-                  lens,
-                  random,
-                  prettyprinter
+-- see GHC manual 8.2.1 section 6.5.1.
+common libstuff
+  default-language:   Haskell2010
+  default-extensions:
+    NoImplicitPrelude
+    StrictData
 
+  ghc-options:
+    -optc-O3 -feager-blackholing -Wall -Wextra -Wcompat
+    -Wmonomorphism-restriction -Wmissing-signatures
+    -Wmissing-export-lists -Wmissing-import-lists
+    -Wmissing-home-modules -Widentities -Wimplicit-prelude
+    -Wredundant-constraints -Wall-missed-specialisations
 
-    Exposed-modules:
-                    Graphics.Implicit
-                    Graphics.Implicit.Canon
-                    Graphics.Implicit.Definitions
-                    Graphics.Implicit.Primitives
-                    Graphics.Implicit.Export
-                    Graphics.Implicit.MathUtil
-                    Graphics.Implicit.ExtOpenScad
-                    Graphics.Implicit.ObjectUtil
-                    -- These modules are exposed for the unit tests against the parser interface.
-                    Graphics.Implicit.ExtOpenScad.Parser.Statement
-                    Graphics.Implicit.ExtOpenScad.Parser.Expr
-                    Graphics.Implicit.ExtOpenScad.Eval.Constant
-                    Graphics.Implicit.ExtOpenScad.Definitions
-                    -- These are exposed for Benchmark.
-                    Graphics.Implicit.Export.SymbolicObj2
-                    Graphics.Implicit.Export.SymbolicObj3
-                    -- These are exposed for implicitsnap.
-                    Graphics.Implicit.Export.SymbolicFormats
-                    Graphics.Implicit.Export.TriangleMeshFormats
-                    Graphics.Implicit.Export.NormedTriangleMeshFormats
-                    Graphics.Implicit.Export.PolylineFormats
-                    Graphics.Implicit.Export.DiscreteAproxable
-                    -- These are exposed for docgen.
-                    Graphics.Implicit.ExtOpenScad.Primitives
-                    -- These are exposed for testing
-                    Graphics.Implicit.Export.Render.GetLoops
-                    -- Exposed for executables
-                    Graphics.Implicit.Export.OutputFormat
-                    Graphics.Implicit.Export.Resolution
-    Other-modules:
-                  Graphics.Implicit.FastIntUtil
-                  Graphics.Implicit.IntegralUtil
-                  Graphics.Implicit.ObjectUtil.GetBox2
-                  Graphics.Implicit.ObjectUtil.GetBox3
-                  Graphics.Implicit.ObjectUtil.GetBoxShared
-                  Graphics.Implicit.ObjectUtil.GetImplicit2
-                  Graphics.Implicit.ObjectUtil.GetImplicit3
-                  Graphics.Implicit.ObjectUtil.GetImplicitShared
-                  Graphics.Implicit.ExtOpenScad.Default
-                  Graphics.Implicit.ExtOpenScad.Parser.Lexer
-                  Graphics.Implicit.ExtOpenScad.Parser.Util
-                  Graphics.Implicit.ExtOpenScad.Eval.Statement
-                  Graphics.Implicit.ExtOpenScad.Eval.Expr
-                  Graphics.Implicit.ExtOpenScad.Util.ArgParser
-                  Graphics.Implicit.ExtOpenScad.Util.OVal
-                  Graphics.Implicit.ExtOpenScad.Util.StateC
-                  Graphics.Implicit.Export.RayTrace
-                  Graphics.Implicit.Export.Util
-                  Graphics.Implicit.Export.TextBuilderUtils
-                  Graphics.Implicit.Export.Symbolic.Rebound2
-                  Graphics.Implicit.Export.Symbolic.Rebound3
-                  Graphics.Implicit.Export.Render
-                  Graphics.Implicit.Export.Render.Definitions
-                  Graphics.Implicit.Export.Render.GetSegs
-                  Graphics.Implicit.Export.Render.HandleSquares
-                  Graphics.Implicit.Export.Render.Interpolate
-                  Graphics.Implicit.Export.Render.RefineSegs
-                  Graphics.Implicit.Export.Render.TesselateLoops
-                  Graphics.Implicit.Export.Render.HandlePolylines
+-- see GHC manual 8.2.1 section 6.5.1.
+library
+  import:          libstuff
+  build-depends:
+    , base                >=3 && <5
+    , blaze-builder
+    , blaze-markup
+    , blaze-svg
+    , bytestring
+    , containers
+    , data-default-class
+    , deepseq
+    , directory
+    , filepath
+    , JuicyPixels
+    , lens
+    , linear
+    , mtl
+    , parallel
+    , parsec
+    , prettyprinter
+    , random
+    , show-combinators
+    , text
 
-Executable extopenscad
-   Import: binstuff
-   if !flag(extopenscad)
-     buildable: False
-   Main-is: extopenscad.hs
-   Hs-source-dirs: programs
-   Build-depends:
-                 base,
-                 filepath,
-                 optparse-applicative >= 0.10.0,
-                 text,
-                 implicit
+  exposed-modules:
+    Graphics.Implicit
+    Graphics.Implicit.Canon
+    Graphics.Implicit.Definitions
+    Graphics.Implicit.Export
+    Graphics.Implicit.Export.DiscreteAproxable
+    Graphics.Implicit.Export.NormedTriangleMeshFormats
+    Graphics.Implicit.Export.OutputFormat
+    Graphics.Implicit.Export.PolylineFormats
+    Graphics.Implicit.Export.Render.GetLoops
+    Graphics.Implicit.Export.Resolution
+    Graphics.Implicit.Export.SymbolicFormats
+    Graphics.Implicit.Export.SymbolicObj2
+    Graphics.Implicit.Export.SymbolicObj3
+    Graphics.Implicit.Export.TriangleMeshFormats
+    Graphics.Implicit.ExtOpenScad
+    Graphics.Implicit.ExtOpenScad.Definitions
+    Graphics.Implicit.ExtOpenScad.Eval.Constant
+    Graphics.Implicit.ExtOpenScad.Parser.Expr
+    Graphics.Implicit.ExtOpenScad.Parser.Statement
+    Graphics.Implicit.ExtOpenScad.Primitives
+    Graphics.Implicit.MathUtil
+    Graphics.Implicit.ObjectUtil
+    Graphics.Implicit.Primitives
 
-Executable docgen
-   Import: binstuff
-   if !flag(docgen)
-     buildable: False
-   main-is: docgen.hs
-   Hs-source-dirs: programs
-   build-depends:
-                 base,
-                 text,
-                 implicit
+  -- These modules are exposed for the unit tests against the parser interface.
+  -- These are exposed for Benchmark.
+  -- These are exposed for implicitsnap.
+  -- These are exposed for docgen.
+  -- These are exposed for testing
+  -- Exposed for executables
+  other-modules:
+    Graphics.Implicit.Export.RayTrace
+    Graphics.Implicit.Export.Render
+    Graphics.Implicit.Export.Render.Definitions
+    Graphics.Implicit.Export.Render.GetSegs
+    Graphics.Implicit.Export.Render.HandlePolylines
+    Graphics.Implicit.Export.Render.HandleSquares
+    Graphics.Implicit.Export.Render.Interpolate
+    Graphics.Implicit.Export.Render.RefineSegs
+    Graphics.Implicit.Export.Render.TesselateLoops
+    Graphics.Implicit.Export.Symbolic.Rebound2
+    Graphics.Implicit.Export.Symbolic.Rebound3
+    Graphics.Implicit.Export.TextBuilderUtils
+    Graphics.Implicit.Export.Util
+    Graphics.Implicit.ExtOpenScad.Default
+    Graphics.Implicit.ExtOpenScad.Eval.Expr
+    Graphics.Implicit.ExtOpenScad.Eval.Statement
+    Graphics.Implicit.ExtOpenScad.Parser.Lexer
+    Graphics.Implicit.ExtOpenScad.Parser.Util
+    Graphics.Implicit.ExtOpenScad.Util.ArgParser
+    Graphics.Implicit.ExtOpenScad.Util.OVal
+    Graphics.Implicit.ExtOpenScad.Util.StateC
+    Graphics.Implicit.FastIntUtil
+    Graphics.Implicit.IntegralUtil
+    Graphics.Implicit.ObjectUtil.GetBox2
+    Graphics.Implicit.ObjectUtil.GetBox3
+    Graphics.Implicit.ObjectUtil.GetBoxShared
+    Graphics.Implicit.ObjectUtil.GetImplicit2
+    Graphics.Implicit.ObjectUtil.GetImplicit3
+    Graphics.Implicit.ObjectUtil.GetImplicitShared
 
-Executable implicitsnap
-   Import: binstuff
-   if !flag(implicitsnap)
-     buildable: False
-   Main-is: implicitsnap.hs
-   Hs-source-dirs: programs
-   Build-depends:
-                 aeson,
-                 base,
-                 bytestring,
-                 implicit,
-                 linear,
-                 snap-core,
-                 snap-server,
-                 text,
-                 utf8-string,
+executable extopenscad
+  import:         binstuff
 
-Benchmark Benchmark
-   Import: binstuff
-   Type: exitcode-stdio-1.0
-   Main-is: Benchmark.hs
-   Hs-source-dirs: programs
-   Build-depends:
-                 base,
-                 criterion,
-                 linear,
-                 implicit
+  if !flag(extopenscad)
+    buildable: False
 
-Test-suite test-implicit
-    Import: binstuff
-    Type: exitcode-stdio-1.0
-    Main-is: Main.hs
-    Hs-source-dirs: tests
-    Build-depends:
-                  base,
-                  bytestring,
-                  hspec,
-                  HUnit,
-                  implicit,
-                  text,
-                  parsec,
-                  directory,
-                  hedgehog,
-                  hw-hspec-hedgehog,
-                  QuickCheck,
-                  linear,
-                  lens
-    Other-Modules:
-                  ParserSpec.Expr
-                  ParserSpec.Statement
-                  ParserSpec.Util
-                  RewriteSpec
-                  ExecSpec.Expr
-                  ExecSpec.Util
-                  MessageSpec.Message
-                  MessageSpec.Util
-                  PropertySpec
-                  PropertySpec.Exec
-                  GoldenSpec.Spec
-                  GoldenSpec.Util
-                  Graphics.Implicit.Test.Instances
-                  Graphics.Implicit.Test.Utils
-                  ImplicitSpec
-                  TesselationSpec
+  main-is:        extopenscad.hs
+  hs-source-dirs: programs
+  build-depends:
+    , base
+    , filepath
+    , implicit
+    , optparse-applicative  >=0.10.0
+    , text
 
-Benchmark parser-bench
-    Import: binstuff
-    Type: exitcode-stdio-1.0
-    Main-is: parser-bench.hs
-    Hs-source-dirs: programs
-    Build-depends:
-                  base,
-                  criterion,
-                  parsec,
-                  implicit
+executable docgen
+  import:         binstuff
 
-Source-repository head
-    Type:            git
-    Location:        https://github.com/Haskell-Things/ImplicitCAD.git
+  if !flag(docgen)
+    buildable: False
+
+  main-is:        docgen.hs
+  hs-source-dirs: programs
+  build-depends:
+    , base
+    , implicit
+    , text
+
+executable implicitsnap
+  import:         binstuff
+
+  if !flag(implicitsnap)
+    buildable: False
+
+  main-is:        implicitsnap.hs
+  hs-source-dirs: programs
+  build-depends:
+    , aeson
+    , base
+    , bytestring
+    , implicit
+    , linear
+    , snap-core
+    , snap-server
+    , text
+    , utf8-string
+
+benchmark Benchmark
+  import:         binstuff
+  type:           exitcode-stdio-1.0
+  main-is:        Benchmark.hs
+  hs-source-dirs: programs
+  build-depends:
+    , base
+    , criterion
+    , implicit
+    , linear
+
+test-suite test-implicit
+  import:         binstuff
+  type:           exitcode-stdio-1.0
+  main-is:        Main.hs
+  hs-source-dirs: tests
+  build-depends:
+    , base
+    , bytestring
+    , directory
+    , hedgehog
+    , hspec
+    , HUnit
+    , hw-hspec-hedgehog
+    , implicit
+    , lens
+    , linear
+    , parsec
+    , QuickCheck
+    , text
+
+  other-modules:
+    ExecSpec.Expr
+    ExecSpec.Util
+    GoldenSpec.Spec
+    GoldenSpec.Util
+    Graphics.Implicit.Test.Instances
+    Graphics.Implicit.Test.Utils
+    ImplicitSpec
+    MessageSpec.Message
+    MessageSpec.Util
+    ParserSpec.Expr
+    ParserSpec.Statement
+    ParserSpec.Util
+    PropertySpec
+    PropertySpec.Exec
+    RewriteSpec
+    TesselationSpec
+
+benchmark parser-bench
+  import:         binstuff
+  type:           exitcode-stdio-1.0
+  main-is:        parser-bench.hs
+  hs-source-dirs: programs
+  build-depends:
+    , base
+    , criterion
+    , implicit
+    , parsec
+
+source-repository head
+  type:     git
+  location: https://github.com/Haskell-Things/ImplicitCAD.git
