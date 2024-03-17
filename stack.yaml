@@ -31,3 +31,6 @@ flags: {}
 # Extra directories used by stack for building
 # extra-include-dirs: [/path/to/dir]
 # extra-lib-dirs: [/path/to/dir]
+packages:
+- .
+- implicit-interpreter
