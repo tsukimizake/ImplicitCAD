@@ -1,7 +1,11 @@
+-- pattern Shared
+{-# LANGUAGE PatternSynonyms #-}
 -- Implicit CAD. Copyright (C) 2011, Christopher Olah (chris@colah.ca)
 -- Copyright 2014 2015 2016, 2017, 2018, Julia Longtin (julial@turinglace.com)
 -- Copyright 2015 2016, Mike MacHenry (mike.machenry@gmail.com)
 -- Released under the GNU AGPLV3+, see LICENSE
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- | This module implements canonicalization pass that
 -- * eliminates identities
@@ -9,104 +13,96 @@
 -- * prevents invalid transformations like scaling by zero that would
 --   otherwise result in NaNs down the pipe
 -- * turns degenerate objects into empty space (i.e. circle 0, cube (pure 0))
-
-{-# LANGUAGE Rank2Types #-}
--- pattern Shared
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Graphics.Implicit.Canon
-  ( canonicalize2
-  , canonicalize3
-  , fmapObj2
-  , fmapObj3
-  , fmapSharedObj
-  , rewriteUntilIrreducible
-  , EqObj((=^=))
-  ) where
-
-import Linear
-  ( V2(V2)
-  , V3(V3)
-  , V4(V4)
+  ( canonicalize2,
+    canonicalize3,
+    fmapObj2,
+    fmapObj3,
+    fmapSharedObj,
+    rewriteUntilIrreducible,
+    EqObj ((=^=)),
   )
-
-import Prelude
-  ( Bool
-      ( False
-      , True
-      )
-  , Either(Left)
-  , Eq((==))
-  , Maybe(Just)
-  , Num
-      ( (*)
-      , (+)
-      )
-  , Ord((<))
-  , length
-  , ($)
-  , (&&)
-  , (<$>)
-  )
-
-import Graphics.Implicit.Definitions
-  ( ExtrudeMScale
-      ( C1
-      , C2
-      , Fn
-      )
-  , SharedObj
-      ( Complement
-      , DifferenceR
-      , EmbedBoxedObj
-      , Empty
-      , Full
-      , IntersectR
-      , Mirror
-      , Outset
-      , Scale
-      , Shell
-      , Translate
-      , UnionR
-      , WithRounding
-      )
-  , SymbolicObj2
-      ( Circle
-      , Polygon
-      , Rotate2
-      , Shared2
-      , Square
-      , Transform2
-      , Slice
-      )
-  , SymbolicObj3
-      ( Cube
-      , Cylinder
-      , Extrude
-      , ExtrudeM
-      , ExtrudeOnEdgeOf
-      , Rotate3
-      , RotateExtrude
-      , Shared3
-      , Sphere
-      , Transform3
-      , Torus
-      , Ellipsoid
-      , BoxFrame
-      , Link
-      )
-  , hasZeroComponent
-  )
-import {-# SOURCE #-} Graphics.Implicit.Primitives
-  ( Object(_Shared)
-  , emptySpace
-  , fullSpace
-  )
+where
 
 import Control.Lens
-  ( preview
-  , (#)
+  ( preview,
+    (#),
+  )
+import Graphics.Implicit.Definitions
+  ( ExtrudeMScale
+      ( C1,
+        C2,
+        Fn
+      ),
+    SharedObj
+      ( Complement,
+        DifferenceR,
+        EmbedBoxedObj,
+        Empty,
+        Full,
+        IntersectR,
+        Mirror,
+        Outset,
+        Scale,
+        Shell,
+        Translate,
+        UnionR,
+        WithRounding
+      ),
+    SymbolicObj2
+      ( Circle,
+        Polygon,
+        Rotate2,
+        Shared2,
+        Slice,
+        Square,
+        Transform2
+      ),
+    SymbolicObj3
+      ( BoxFrame,
+        Cube,
+        Cylinder,
+        Ellipsoid,
+        Extrude,
+        ExtrudeM,
+        ExtrudeOnEdgeOf,
+        Link,
+        Rotate3,
+        RotateExtrude,
+        Shared3,
+        Sphere,
+        Torus,
+        Transform3
+      ),
+    hasZeroComponent,
+  )
+import {-# SOURCE #-} Graphics.Implicit.Primitives
+  ( Object (_Shared),
+    emptySpace,
+    fullSpace,
+  )
+import Linear
+  ( V2 (V2),
+    V3 (V3),
+    V4 (V4),
+  )
+import Prelude
+  ( Bool
+      ( False,
+        True
+      ),
+    Either (Left),
+    Eq ((==)),
+    Maybe (Just),
+    Num
+      ( (*),
+        (+)
+      ),
+    Ord ((<)),
+    length,
+    ($),
+    (&&),
+    (<$>),
   )
 
 -- | A pattern that abstracts over 'Shared2' and 'Shared3'.
@@ -122,14 +118,14 @@ pattern Shared v <- (preview _Shared -> Just v)
 -- This resembles bimap from Bifunctor but the structure
 -- of SharedObj doesn't allow us to define Bifunctor instance
 -- as we need to map over the first type argument (obj) and not f and a.
-fmapSharedObj
-  :: forall obj f a
-   . (Object obj f a)
-  => (obj -> obj)
-  -> (obj -> obj)
-  -> obj
-  -> obj
-{-# INLINABLE fmapSharedObj #-}
+fmapSharedObj ::
+  forall obj f a.
+  (Object obj f a) =>
+  (obj -> obj) ->
+  (obj -> obj) ->
+  obj ->
+  obj
+{-# INLINEABLE fmapSharedObj #-}
 fmapSharedObj _ g (Shared Empty) = g emptySpace
 fmapSharedObj _ g (Shared Full) = g fullSpace
 fmapSharedObj f g (Shared (Complement o)) = g $ Shared $ Complement (f o)
@@ -145,34 +141,44 @@ fmapSharedObj _ g (Shared (EmbedBoxedObj fun)) = g $ Shared $ EmbedBoxedObj fun
 fmapSharedObj f g (Shared (WithRounding r o)) = g $ Shared $ WithRounding r (f o)
 fmapSharedObj f _ o = f o
 
+{-# INLINEABLE fmapObj2 #-}
+
+{-# INLINEABLE fmapObj3 #-}
+
 -- | Map over @SymbolicObj2@ and its underlying shared objects
 --
 -- This function is co-recursive with @fmapSharedObj@ to achieve
 -- deep mapping over objects nested in @Shared2@ constructor
-fmapObj2
-  :: (SymbolicObj2 -> SymbolicObj2) -- ^ SymbolicObj2 transformation
-  -> (SymbolicObj3 -> SymbolicObj3) -- ^ SymbolicObj3 transformation
-  -> (forall obj f a . (Object obj f a) => obj -> obj) -- ^ Shared2|3 transformation
-  -> SymbolicObj2
-  -> SymbolicObj2
-fmapObj2 f _ _ (Square v)       = f $ Square v
-fmapObj2 f _ _ (Circle r)       = f $ Circle r
-fmapObj2 f _ _ (Polygon ps)     = f $ Polygon ps
-fmapObj2 f g s (Rotate2 r o)    = f $ Rotate2 r (fmapObj2 f g s o)
+fmapObj2 ::
+  -- | SymbolicObj2 transformation
+  (SymbolicObj2 -> SymbolicObj2) ->
+  -- | SymbolicObj3 transformation
+  (SymbolicObj3 -> SymbolicObj3) ->
+  -- | Shared2|3 transformation
+  (forall obj f a. (Object obj f a) => obj -> obj) ->
+  SymbolicObj2 ->
+  SymbolicObj2
+fmapObj2 f _ _ (Square v) = f $ Square v
+fmapObj2 f _ _ (Circle r) = f $ Circle r
+fmapObj2 f _ _ (Polygon ps) = f $ Polygon ps
+fmapObj2 f g s (Rotate2 r o) = f $ Rotate2 r (fmapObj2 f g s o)
 fmapObj2 f g s (Transform2 m o) = f $ Transform2 m (fmapObj2 f g s o)
-fmapObj2 f g s (Slice o)        = f $ Slice (fmapObj3 g f s o)
-fmapObj2 f g s (Shared2 o)      = fmapSharedObj (fmapObj2 f g s) s (Shared2 o)
+fmapObj2 f g s (Slice o) = f $ Slice (fmapObj3 g f s o)
+fmapObj2 f g s (Shared2 o) = fmapSharedObj (fmapObj2 f g s) s (Shared2 o)
 
 -- | Map over @SymbolicObj3@ and its underlying shared objects
 --
 -- This function is co-recursive with @fmapSharedObj@ to achieve
 -- deep mapping over objects nested in @Shared3@ constructor
-fmapObj3
-  :: (SymbolicObj3 -> SymbolicObj3) -- ^ SymbolicObj3 transformation
-  -> (SymbolicObj2 -> SymbolicObj2) -- ^ SymbolicObj2 transformation
-  -> (forall obj f a . (Object obj f a) => obj -> obj) -- ^ Shared2|3 transformation
-  -> SymbolicObj3
-  -> SymbolicObj3
+fmapObj3 ::
+  -- | SymbolicObj3 transformation
+  (SymbolicObj3 -> SymbolicObj3) ->
+  -- | SymbolicObj2 transformation
+  (SymbolicObj2 -> SymbolicObj2) ->
+  -- | Shared2|3 transformation
+  (forall obj f a. (Object obj f a) => obj -> obj) ->
+  SymbolicObj3 ->
+  SymbolicObj3
 fmapObj3 f _ _ (Cube v) = f $ Cube v
 fmapObj3 f _ _ (Sphere r) = f $ Sphere r
 fmapObj3 f _ _ (Cylinder r1 r2 h) = f $ Cylinder r1 r2 h
@@ -195,12 +201,12 @@ fmapObj3 f g s (Shared3 o) = fmapSharedObj (fmapObj3 f g s) s (Shared3 o)
 class EqObj a where
   (=^=) :: a -> a -> Bool
 
-instance EqObj a => EqObj [a] where
-  []     =^= []     = True
-  (x:xs) =^= (y:ys) = x =^= y && xs =^= ys
-  _xs    =^= _ys    = False
+instance (EqObj a) => EqObj [a] where
+  [] =^= [] = True
+  (x : xs) =^= (y : ys) = x =^= y && xs =^= ys
+  _xs =^= _ys = False
 
-instance (EqObj obj , Eq (f a)) => EqObj (SharedObj obj f a) where
+instance (EqObj obj, Eq (f a)) => EqObj (SharedObj obj f a) where
   Empty =^= Empty = True
   Full =^= Full = True
   Complement a =^= Complement b = a =^= b
@@ -243,47 +249,45 @@ instance EqObj SymbolicObj3 where
   Rotate3 x a =^= Rotate3 y b = x == y && a =^= b
   Transform3 x a =^= Transform3 y b = x == y && a =^= b
   Extrude x a =^= Extrude y b = x == y && a =^= b
-
   ExtrudeM (Left twa) ma (Left ta) a (Left ha)
-    =^=
-    ExtrudeM (Left twb) mb (Left tb) b (Left hb)
-      = twa == twb && ma =^= mb && ta == tb && ha == hb && a =^= b
+    =^= ExtrudeM (Left twb) mb (Left tb) b (Left hb) =
+      twa == twb && ma =^= mb && ta == tb && ha == hb && a =^= b
   ExtrudeM {} =^= ExtrudeM {} = True
-
   RotateExtrude ra (Left ta) (Left rota) a
-    =^=
-    RotateExtrude rb (Left tb) (Left rotb) b
-      = ra == rb && ta == tb && rota == rotb && a =^= b
+    =^= RotateExtrude rb (Left tb) (Left rotb) b =
+      ra == rb && ta == tb && rota == rotb && a =^= b
   RotateExtrude {} =^= RotateExtrude {} = True
-
   ExtrudeOnEdgeOf a x =^= ExtrudeOnEdgeOf b y = a =^= b && x =^= y
   Shared3 a =^= Shared3 b = a =^= b
   _ =^= _ = False
 
 -- | Rewrite the object tree until it cannot be reduced further
-rewriteUntilIrreducible
-  :: ( Object obj f a
-     , EqObj obj)
-  => (obj -> obj) -- ^ SymbolicObjN transformation
-  -> obj
-  -> obj
+rewriteUntilIrreducible ::
+  ( Object obj f a,
+    EqObj obj
+  ) =>
+  -- | SymbolicObjN transformation
+  (obj -> obj) ->
+  obj ->
+  obj
 rewriteUntilIrreducible fRew ast =
-  let
-    step = fRew ast
-  in
-    if step =^= ast
-    then step
-    else rewriteUntilIrreducible fRew step
+  let step = fRew ast
+   in if step =^= ast
+        then step
+        else rewriteUntilIrreducible fRew step
 
 -- | Canonicalize @SymbolicObj2@ tree
 canonicalize2 :: SymbolicObj2 -> SymbolicObj2
 canonicalize2 = rewriteUntilIrreducible $ fmapObj2 canon2 canon3 canonShared
+
+{-# INLINEABLE canonicalize3 #-}
 
 -- | Canonicalize @SymbolicObj3@ tree
 canonicalize3 :: SymbolicObj3 -> SymbolicObj3
 canonicalize3 = rewriteUntilIrreducible $ fmapObj3 canon3 canon2 canonShared
 
 {-# ANN canon2 "HLint: ignore Use record patterns" #-}
+
 {-# ANN canon3 "HLint: ignore Use record patterns" #-}
 
 -- | Rewrite rules for @SymbolicObj2@
@@ -300,12 +304,15 @@ canon2 (Rotate2 0 o) = o
 
 -- ignore if zeroes, TODO(srk): produce warning
 -- TODO(srk): produce warning and ignore if we get a non-invertible matrix
-canon2 (Transform2
-         (V3 (V3 x _ _)
-             (V3 _ y _)
-             (V3 _ _ _)
-         )
-         o) | hasZeroComponent (V2 x y) = o
+canon2
+  ( Transform2
+      ( V3
+          (V3 x _ _)
+          (V3 _ y _)
+          (V3 _ _ _)
+        )
+      o
+    ) | hasZeroComponent (V2 x y) = o
 canon2 x = x
 
 -- | Rewrite rules for @SymbolicObj3@
@@ -324,21 +331,24 @@ canon3 (RotateExtrude 0 _t _r _o) = emptySpace
 canon3 (RotateExtrude _theta _t _r (Shared Empty)) = emptySpace
 -- ignore if zeroes, TODO(srk): produce warning
 -- TODO(srk): produce warning and ignore if we get a non-invertible matrix
-canon3 (Transform3
-         (V4 (V4 x _ _ _)
-             (V4 _ y _ _)
-             (V4 _ _ z _)
-             (V4 _ _ _ _)
-         )
-         o) | hasZeroComponent (V3 x y z) = o
+canon3
+  ( Transform3
+      ( V4
+          (V4 x _ _ _)
+          (V4 _ y _ _)
+          (V4 _ _ z _)
+          (V4 _ _ _ _)
+        )
+      o
+    ) | hasZeroComponent (V3 x y z) = o
 canon3 x = x
 
 -- | Rewrite rules for @SharedObj@
-canonShared
-  :: forall obj f a
-   . (Object obj f a)
-  => obj
-  -> obj
+canonShared ::
+  forall obj f a.
+  (Object obj f a) =>
+  obj ->
+  obj
 canonShared (Shared (Scale 1 o)) = o
 canonShared (Shared (Scale v1 (Shared (Scale v2 o)))) = Shared $ Scale (v1 * v2) o
 canonShared (Shared (Scale _ s@(Shared Empty))) = s
@@ -349,7 +359,6 @@ canonShared (Shared (Translate 0 o)) = o
 canonShared (Shared (Translate _ s@(Shared Empty))) = s
 canonShared (Shared (Translate _ s@(Shared Full))) = s
 canonShared (Shared (Translate v1 (Shared (Translate v2 o)))) = Shared $ Translate (v1 + v2) o
-
 canonShared (Shared (Mirror _ (Shared Empty))) = emptySpace
 canonShared (Shared (Mirror _ (Shared Full))) = fullSpace
 canonShared (Shared (Outset 0 s)) = s

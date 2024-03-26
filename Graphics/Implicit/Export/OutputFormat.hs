@@ -16,16 +16,16 @@ module Graphics.Implicit.Export.OutputFormat
   )
 where
 
-import Prelude (Bool, Eq, FilePath, Maybe, Read (readsPrec), Show(show), String, drop, error, flip, length, tail, take, ($), (<>), (==))
 import Control.Applicative ((<$>))
 -- For making the format guesser case insensitive when looking at file extensions.
 import Data.Char (toLower)
-import Data.Default.Class (Default(def))
-import Data.List (lookup, elem)
+import Data.Default.Class (Default (def))
+import Data.List (elem, lookup)
 import Data.Maybe (fromMaybe)
 import Data.Tuple (swap)
 -- For handling input/output files.
 import System.FilePath (takeExtensions)
+import Prelude (Bool, Eq, FilePath, Maybe, Read (readsPrec), Show (show), String, drop, error, flip, length, tail, take, ($), (<>), (==))
 
 -- | A type serving to enumerate our output formats.
 data OutputFormat
@@ -38,7 +38,7 @@ data OutputFormat
   | THREEJS
   | OBJ
   | DXF
---  | 3MF
+  --  | 3MF
   deriving (Show, Eq)
 
 instance Default OutputFormat where
@@ -58,7 +58,7 @@ formats2D = [GCode, DXF, PNG, SCAD, SVG]
 
 -- | True for 2D capable `OutputFormat`s
 formatIs2D :: OutputFormat -> Bool
-formatIs2D  = flip elem formats2D
+formatIs2D = flip elem formats2D
 
 -- | All supported 3D formats
 formats3D :: [OutputFormat]
@@ -83,14 +83,15 @@ formatExtensions =
     ("threejs", THREEJS),
     ("obj", OBJ),
     ("dxf", DXF)
---  ("3mf", 3MF)
+    --  ("3mf", 3MF)
   ]
 
 -- | Lookup an output format for a given output file. Throw an error if one cannot be found.
 guessOutputFormat :: FilePath -> OutputFormat
 guessOutputFormat fileName =
   fromMaybe (error $ "Unrecognized output format: " <> ext) $
-    readOutputFormat $ tail ext
+    readOutputFormat $
+      tail ext
   where
     ext = takeExtensions fileName
 
@@ -113,6 +114,7 @@ instance Read OutputFormat where
 
 -- | Get filename extension for `OutputFormat`
 formatExtension :: OutputFormat -> String
-formatExtension fmt = fromMaybe
-  (error $ "No extension defined for OutputFormat " <> show fmt)
-  $ lookup fmt (swap <$> formatExtensions)
+formatExtension fmt =
+  fromMaybe
+    (error $ "No extension defined for OutputFormat " <> show fmt)
+    $ lookup fmt (swap <$> formatExtensions)
